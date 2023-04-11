@@ -19,10 +19,11 @@ class Platform:
             return (self.location[0]+1, self.location[1])
 
 class GameState:
-    def __init__(self, game_grid, player_location, platforms):
+    def __init__(self, game_grid, player_location, platforms, goal_location):
         self.player_location = player_location
         self.game_grid = game_grid
         self.platforms = platforms
+        self.goal_location = goal_location
         self.width = len(self.game_grid[0])
         self.height = len(self.game_grid)
 
@@ -32,6 +33,12 @@ class GameState:
                 print(row[cn], end=" ")
             print("")
 
+    def is_win_state(self):
+        return self.player_location == self.goal_location
+
+    def is_lose_state(self):
+        return self.get_legal_moves() == []
+
     def validate_coord(self, coord):
         return coord[0] >= 0 and coord[0] < self.height and coord[1] >= 0 and coord[1] < self.width
 
@@ -40,13 +47,13 @@ class GameState:
         next_platforms = []
         for platform in self.platforms:
             predicted_location = platform.next_location()
-            if self.validate_coord(predicted_location) and self.game_grid[predicted_location[0]][predicted_location[1]] == "V":
+            if self.validate_coord(predicted_location) and self.game_grid[predicted_location[0]][predicted_location[1]] in ["V", "P"]:
                 next_location = predicted_location
                 next_platform = Platform(predicted_location, platform.direction)
             else:
                 temp_platform = Platform(platform.location, inverted_directions[platform.direction])
                 reverse_location = temp_platform.next_location()
-                if self.validate_coord(reverse_location) and self.game_grid[reverse_location[0]][reverse_location[1]] == "V":
+                if self.validate_coord(reverse_location) and self.game_grid[reverse_location[0]][reverse_location[1]] in ["V", "P"]:
                     next_location = reverse_location
                     next_platform = Platform(reverse_location, temp_platform.direction)
                 else:
@@ -66,43 +73,66 @@ class GameState:
         jump_1 = ("jump", (y_coord-1, x_coord))
         jump_2 = ("jump", (y_coord-2, x_coord))
         jump_3 = ("jump", (y_coord-3, x_coord))
+        # Spaces that the player can move into
+        accessible = ["V", "G"]
 
         # simulate platform movement
         # what are we currently standing on?
-        curr_on = self.game_grid[y_coord+1][x_coord]
+        if y_coord+1 >= self.height:
+            return []
+        else:
+            curr_on = self.game_grid[y_coord+1][x_coord]
         next_grid, next_platforms = self.update_platforms()
         # if we were on a platform, and the platform will move away, you can still move with the platform
-        if next_grid[y_coord+1][x_coord] == "V" and curr_on == "B":
+        if next_grid[y_coord+1][x_coord] in accessible and curr_on == "B":
             next_grid[y_coord+1][x_coord] = "B"
 
         # if we're falling, only valid options are straight down, down right, down left
         fall_down = ("fall_down", (y_coord+1, x_coord))
         fall_right = ("fall_right", (y_coord+1, x_coord+1))
         fall_left = ("fall_left", (y_coord+1, x_coord-1))
-        if self.validate_coord(fall_down[1]) and next_grid[fall_down[1][0]][fall_down[1][1]] == "V":
+        if self.validate_coord(fall_down[1]) and next_grid[fall_down[1][0]][fall_down[1][1]] in accessible:
             legal.append(fall_down)
-            if self.validate_coord(fall_right[1]) and next_grid[fall_right[1][0]][fall_right[1][1]] == "V":
+            if self.validate_coord(fall_right[1]) and next_grid[fall_right[1][0]][fall_right[1][1]] in accessible:
                 legal.append(fall_right)
-            if self.validate_coord(fall_left[1]) and next_grid[fall_left[1][0]][fall_left[1][1]] == "V":
+            if self.validate_coord(fall_left[1]) and next_grid[fall_left[1][0]][fall_left[1][1]] in accessible:
                 legal.append(fall_left)
             return legal
 
-        legal.append(("stay", (y_coord, x_coord)))
+        # are we on a platform moving up?
+        if self.game_grid[y_coord+1][x_coord] == "B" and next_grid[y_coord][x_coord] == "B":
+            stay_option = ("stay", (y_coord-1, x_coord))
+            if self.validate_coord(stay_option[1]) and next_grid[stay_option[1][0]][stay_option[1][1]] in accessible:
+                legal.append(stay_option)
+        else:
+            legal.append(("stay", (y_coord, x_coord)))
 
         # if we're not falling, we can move left or right
         for possible in [left, right]:
-            if self.validate_coord(possible[1]) and next_grid[possible[1][0]][possible[1][1]] == "V":
+            if self.validate_coord(possible[1]) and next_grid[possible[1][0]][possible[1][1]] in accessible:
                     legal.append(possible)
         # or we can jump
-        if self.validate_coord(jump_1[1]) and next_grid[jump_1[1][0]][jump_1[1][1]] == "V":
-            if self.validate_coord(jump_2[1]) and next_grid[jump_2[1][0]][jump_2[1][1]] == "V":
-                if self.validate_coord(jump_3[1]) and next_grid[jump_3[1][0]][jump_3[1][1]] == "V":
+        if self.validate_coord(jump_1[1]) and next_grid[jump_1[1][0]][jump_1[1][1]] in accessible:
+            if self.validate_coord(jump_2[1]) and next_grid[jump_2[1][0]][jump_2[1][1]] in accessible:
+                if self.validate_coord(jump_3[1]) and next_grid[jump_3[1][0]][jump_3[1][1]] in accessible:
                     legal.append(jump_3)
 
         return legal
 
     def get_successor_state(self, action):
+        x_coord = self.player_location[0]
+        y_coord = self.player_location[1]
+        next_grid, next_platforms = self.update_platforms()
+        left_behind = "V"
+        accessible = ["V", "G"]
+
         if action == "stay":
+            if self.game_grid[y_coord+1][x_coord] == "B" and next_grid[y_coord][x_coord] == "B":
+                stay_coords = (y_coord-1, x_coord)
+                if self.validate_coord(stay_coords) and next_grid[stay_coords[0]][stay_coords[1]] in accessible:
+                    new_player_location = (stay_coords[1], stay_coords[0])
+                    left_behind = "B"
+            else:
                 new_player_location = (self.player_location[0], self.player_location[1])
         elif action == "left":
             new_player_location = (self.player_location[0]-1, self.player_location[1])
@@ -119,26 +149,32 @@ class GameState:
         else:
             raise ValueError(f"action {action} is invalid.")
 
-        next_grid, next_platforms = self.update_platforms()
         new_game_grid = deepcopy(next_grid)
-        new_game_grid[self.player_location[1]][self.player_location[0]] = "V"
+        new_game_grid[self.player_location[1]][self.player_location[0]] = left_behind
         new_game_grid[new_player_location[1]][new_player_location[0]] = "P"
 
-        return GameState(new_game_grid, new_player_location, next_platforms)
+        return GameState(new_game_grid, new_player_location, next_platforms, self.goal_location)
 
 if __name__ == "__main__":
     test_game_grid = [["V", "V", "V"],["V", "V", "V"],["V", "B", "V"],["P", "V", "V"],["B", "B", "B"]]
-    test_game_grid_p_loc = [0, 3]
+    test_game_grid_p_loc = (0, 3)
     test_game_grid_plat = Platform((2, 1), "right")
 
-    game_state = GameState(test_game_grid, test_game_grid_p_loc, [test_game_grid_plat])
+    test_game_grid_2 = [["V", "V", "V"],["V", "V", "V"],["V", "B", "G"],["P", "V", "V"],["B", "V", "B"]]
+    test_game_grid_2_p_loc = (0, 3)
+    test_game_grid_2_plat = Platform((2, 1), "up")
+    test_game_grid_2_goal = (2, 2)
+
+    game_state = GameState(test_game_grid_2, test_game_grid_2_p_loc, [test_game_grid_2_plat], test_game_grid_2_goal)
     game_state.print_state()
     print(game_state.get_legal_moves())
 
-    commands = ["right", "right", "jump", "fall_left", "right", "stay"]
+    commands = ["jump", "fall_right", "fall_right"]
     gs = game_state
     for command in commands:
         input()
         gs = gs.get_successor_state(command)
         gs.print_state()
+        print(gs.is_win_state())
+        print(gs.is_lose_state())
         print(gs.get_legal_moves())
