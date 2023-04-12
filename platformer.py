@@ -47,20 +47,20 @@ class GameState:
         next_platforms = []
         for platform in self.platforms:
             predicted_location = platform.next_location()
-            if self.validate_coord(predicted_location) and self.game_grid[predicted_location[0]][predicted_location[1]] in ["V", "P"]:
+            if self.validate_coord(predicted_location) and self.game_grid[predicted_location[0]][predicted_location[1]] in ["·", "☺"]:
                 next_location = predicted_location
                 next_platform = Platform(predicted_location, platform.direction)
             else:
                 temp_platform = Platform(platform.location, inverted_directions[platform.direction])
                 reverse_location = temp_platform.next_location()
-                if self.validate_coord(reverse_location) and self.game_grid[reverse_location[0]][reverse_location[1]] in ["V", "P"]:
+                if self.validate_coord(reverse_location) and self.game_grid[reverse_location[0]][reverse_location[1]] in ["·", "☺"]:
                     next_location = reverse_location
                     next_platform = Platform(reverse_location, temp_platform.direction)
                 else:
                     next_location = platform.location
                     next_platform = platform
-            next_grid[platform.location[0]][platform.location[1]] = "V"
-            next_grid[next_location[0]][next_location[1]] = "B"
+            next_grid[platform.location[0]][platform.location[1]] = "·"
+            next_grid[next_location[0]][next_location[1]] = "▦"
             next_platforms.append(next_platform)
         return next_grid, next_platforms
 
@@ -74,7 +74,7 @@ class GameState:
         jump_2 = ("jump", (y_coord-2, x_coord))
         jump_3 = ("jump", (y_coord-3, x_coord))
         # Spaces that the player can move into
-        accessible = ["V", "G"]
+        accessible = ["·", "⚑"]
 
         # simulate platform movement
         # what are we currently standing on?
@@ -83,9 +83,14 @@ class GameState:
         else:
             curr_on = self.game_grid[y_coord+1][x_coord]
         next_grid, next_platforms = self.update_platforms()
+
         # if we were on a platform, and the platform will move away, you can still move with the platform
-        if next_grid[y_coord+1][x_coord] in accessible and curr_on == "B":
-            next_grid[y_coord+1][x_coord] = "B"
+        if next_grid[y_coord+1][x_coord] in accessible and curr_on == "▦":
+            next_grid[y_coord+1][x_coord] = "▦"
+
+        # if we're falling, but a platform is moving up under us, we're still falling
+        if curr_on in accessible and next_grid[y_coord+1][x_coord] == "▦":
+            next_grid[y_coord+1][x_coord] = "·"
 
         # if we're falling, only valid options are straight down, down right, down left
         fall_down = ("fall_down", (y_coord+1, x_coord))
@@ -100,7 +105,7 @@ class GameState:
             return legal
 
         # are we on a platform moving up?
-        if self.game_grid[y_coord+1][x_coord] == "B" and next_grid[y_coord][x_coord] == "B":
+        if self.game_grid[y_coord+1][x_coord] == "▦" and next_grid[y_coord][x_coord] == "▦":
             stay_option = ("stay", (y_coord-1, x_coord))
             if self.validate_coord(stay_option[1]) and next_grid[stay_option[1][0]][stay_option[1][1]] in accessible:
                 legal.append(stay_option)
@@ -126,15 +131,18 @@ class GameState:
         x_coord = self.player_location[0]
         y_coord = self.player_location[1]
         next_grid, next_platforms = self.update_platforms()
-        left_behind = "V"
-        accessible = ["V", "G"]
+        if next_grid[y_coord][x_coord] == "☺":
+            left_behind = "·"
+        else:
+            left_behind = "▦"
+        accessible = ["·", "⚑"]
 
         if action == "stay":
-            if self.game_grid[y_coord+1][x_coord] == "B" and next_grid[y_coord][x_coord] == "B":
+            if self.game_grid[y_coord+1][x_coord] == "▦" and next_grid[y_coord][x_coord] == "▦":
                 stay_coords = (y_coord-1, x_coord)
                 if self.validate_coord(stay_coords) and next_grid[stay_coords[0]][stay_coords[1]] in accessible:
                     new_player_location = (stay_coords[1], stay_coords[0])
-                    left_behind = "B"
+                    left_behind = "▦"
             else:
                 new_player_location = (self.player_location[0], self.player_location[1])
         elif action == "left":
@@ -154,16 +162,16 @@ class GameState:
 
         new_game_grid = deepcopy(next_grid)
         new_game_grid[self.player_location[1]][self.player_location[0]] = left_behind
-        new_game_grid[new_player_location[1]][new_player_location[0]] = "P"
+        new_game_grid[new_player_location[1]][new_player_location[0]] = "☺"
 
         return GameState(new_game_grid, new_player_location, next_platforms, self.goal_location)
 
 if __name__ == "__main__":
-    test_game_grid = [["V", "V", "V"],["V", "V", "V"],["V", "B", "V"],["P", "V", "V"],["B", "B", "B"]]
+    test_game_grid = [["·", "·", "·"],["·", "·", "·"],["·", "▦", "·"],["☺", "·", "·"],["▦", "▦", "▦"]]
     test_game_grid_p_loc = (0, 3)
     test_game_grid_plat = Platform((2, 1), "right")
 
-    test_game_grid_2 = [["V", "V", "V"],["V", "V", "V"],["V", "B", "G"],["P", "V", "V"],["B", "V", "B"]]
+    test_game_grid_2 = [["·", "·", "·"],["·", "·", "·"],["·", "▦", "⚑"],["☺", "·", "·"],["▦", "·", "▦"]]
     test_game_grid_2_p_loc = (0, 3)
     test_game_grid_2_plat = Platform((2, 1), "up")
     test_game_grid_2_goal = (2, 2)

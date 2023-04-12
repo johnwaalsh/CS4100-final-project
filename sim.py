@@ -1,11 +1,6 @@
 from platformer import GameState, Platform
-from algorithms import DepthFirstSearch, BreadthFirstSearch
-
-def get_item_location(game_grid, item):
-    for rn, r in enumerate(game_grid):
-        for cn, c in enumerate(r):
-            if r[cn] == item:
-                return (cn, rn)
+from algorithms import DepthFirstSearch
+from main import get_item_location
 
 if __name__ == "__main__":
     grid = \
@@ -22,14 +17,13 @@ if __name__ == "__main__":
 
     game_state = GameState(grid, p_loc, [plat_1], goal)
     game_state.print_state()
+    print(game_state.get_legal_moves())
 
-    print("\nDFS")
-    dfs = DepthFirstSearch(game_state)
-    dfs_sol = dfs.solve()
-    print(dfs_sol)
-
-    print("\nBFS")
-    bfs = BreadthFirstSearch(game_state)
-    bfs_sol = bfs.solve()
-    print(bfs_sol)
-
+    commands = ['stay', 'stay', 'stay', 'jump', 'fall_down', 'fall_right', 'fall_right', 'jump', 'fall_down', 'fall_right', 'fall_right', 'jump', 'fall_down', 'fall_right', 'fall_right', 'jump', 'fall_down', 'fall_right', 'fall_right', 'jump', 'fall_right', 'fall_right', 'stay', 'stay', 'stay', 'stay', 'left', 'left', 'left', 'left', 'left', 'left', 'left', 'left', 'left', 'fall_left']
+    gs = game_state
+    for command in commands:
+        input()
+        print(f"Chose {command}")
+        gs = gs.get_successor_state(command)
+        gs.print_state()
+        print(gs.get_legal_moves())

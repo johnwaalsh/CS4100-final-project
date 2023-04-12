@@ -1,4 +1,4 @@
-class DepthFirstSearch:
+class SearchAlgorithm:
     def __init__(self, game_state):
         self.game_state = game_state
 
@@ -10,6 +10,7 @@ class DepthFirstSearch:
             state_str += " " + str(platform.direction)
         return state_str
 
+class DepthFirstSearch(SearchAlgorithm):
     def solve(self):
         # store state and path to state
         stack = [(self.convert_state_to_str(self.game_state), self.game_state, [])]
@@ -29,3 +30,25 @@ class DepthFirstSearch:
                     stack.insert(0, (successor_string, successor_state, successor_path))
         print("No path found.")
         return []
+
+class BreadthFirstSearch(SearchAlgorithm):
+    def solve(self):
+        # store state and path to state
+        queue = [(self.convert_state_to_str(self.game_state), self.game_state, [])]
+        analyzed = []
+        while queue:
+            curr_string, curr_state, curr_path = queue.pop()
+            analyzed.append(curr_string)
+            if curr_state.is_win_state():
+                return curr_path
+            legal_moves = curr_state.get_legal_moves()
+            for move in legal_moves:
+                successor_state = curr_state.get_successor_state(move[0])
+                successor_string = self.convert_state_to_str(successor_state)
+                successor_path = curr_path[:]
+                successor_path.append(move[0])
+                if successor_string not in [s[0] for s in queue] and successor_string not in analyzed:
+                    queue.insert(0, (successor_string, successor_state, successor_path))
+        print("No path found.")
+        return []
+
