@@ -120,6 +120,9 @@ class GameState:
         return legal
 
     def get_successor_state(self, action):
+        legal_moves = self.get_legal_moves()
+        if action not in [move[0] for move in legal_moves]:
+            raise ValueError(f"{action} is an invalid move")
         x_coord = self.player_location[0]
         y_coord = self.player_location[1]
         next_grid, next_platforms = self.update_platforms()
