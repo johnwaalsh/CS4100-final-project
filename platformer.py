@@ -207,27 +207,3 @@ class GameState:
         new_game_grid[new_player_location[1]][new_player_location[0]] = "☺"
 
         return GameState(new_game_grid, new_player_location, next_platforms, self.goal_location)
-
-if __name__ == "__main__":
-    test_game_grid = [["·", "·", "·"],["·", "·", "·"],["·", "▦", "·"],["☺", "·", "·"],["▦", "▦", "▦"]]
-    test_game_grid_p_loc = (0, 3)
-    test_game_grid_plat = Platform((2, 1), "right")
-
-    test_game_grid_2 = [["·", "·", "·"],["·", "·", "·"],["·", "▦", "⚑"],["☺", "·", "·"],["▦", "·", "▦"]]
-    test_game_grid_2_p_loc = (0, 3)
-    test_game_grid_2_plat = Platform((2, 1), "up")
-    test_game_grid_2_goal = (2, 2)
-
-    game_state = GameState(test_game_grid_2, test_game_grid_2_p_loc, [test_game_grid_2_plat], test_game_grid_2_goal)
-    game_state.print_state()
-    print(game_state.get_legal_moves())
-
-    commands = ["jump", "fall_right", "fall_right"]
-    gs = game_state
-    for command in commands:
-        input()
-        gs = gs.get_successor_state(command)
-        gs.print_state()
-        print(gs.is_win_state())
-        print(gs.is_lose_state())
-        print(gs.get_legal_moves())

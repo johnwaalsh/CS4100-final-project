@@ -86,26 +86,10 @@ class AStarSearch(SearchAlgorithm):
         return []
 
 class QLearner(SearchAlgorithm):
-    def generate_episodes(self):
-        episodes = []
-        queue = [(self.convert_state_to_str(self.game_state), self.game_state, [])]
-        while queue:
-            curr_string, curr_state, curr_path = queue.pop()
-            if curr_state.is_win_state() or curr_state.is_lose_state() or len(curr_path) >= 10:
-                episodes.append(curr_path)
-            else:
-                legal_moves = curr_state.get_legal_moves()
-                for move in legal_moves:
-                    successor_state = curr_state.get_successor_state(move[0])
-                    successor_string = self.convert_state_to_str(successor_state)
-                    successor_path = curr_path[:]
-                    successor_path.append(move[0])
-                    queue.insert(0, (successor_string, successor_state, successor_path))
-        return episodes
-
     def solve(self):
         learning_rate = 0.5
         gamma = 0.9
+
         # Initialize Q table
         Q_table = {}
         start_states = self.game_state.get_possible_states()
