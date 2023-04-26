@@ -27,6 +27,44 @@ class GameState:
         self.width = len(self.game_grid[0])
         self.height = len(self.game_grid)
 
+    def get_possible_platforms(self):
+        possible_locations = []
+        platform = self.platforms[0]
+        horiz = False
+        if platform.direction in ["left", "right"]:
+            horiz = True
+            pos_rows = [platform.location[0]]
+            pos_cols = [i for i in range(self.width)]
+            pos_dirs = ["left", "right"]
+        else:
+            pos_rows = [i for i in range(self.height)]
+            pos_cols = [platform.location[1]]
+            pos_dirs = ["up", "down"]
+        for pos_row in pos_rows:
+            for pos_col in pos_cols:
+                for pos_dir in pos_dirs:
+                    possible_locations.append(Platform((pos_row, pos_col), pos_dir))
+        return possible_locations
+
+    def get_possible_states(self):
+        possible = []
+        for pr_n in range(self.height):
+            for pc_n in range(self.width):
+                if (self.game_grid[pr_n][pc_n] != "▦" or (pr_n, pc_n) == self.platforms[0].location):
+                    valid_player_loc = (pc_n, pr_n)
+                    possible_platforms = self.get_possible_platforms()
+                    for pn, platform in enumerate(possible_platforms):
+                        plat_loc = platform.location
+                        curr_plat_loc = self.platforms[0].location
+                        if plat_loc != (valid_player_loc[1], valid_player_loc[0]):
+                            altered_grid = deepcopy(self.game_grid)
+                            altered_grid[curr_plat_loc[0]][curr_plat_loc[1]] = "·"
+                            altered_grid[plat_loc[0]][plat_loc[1]] = "▦"
+                            altered_grid[self.player_location[1]][self.player_location[0]] = "·"
+                            altered_grid[valid_player_loc[1]][valid_player_loc[0]] = "☺"
+                            possible.append(GameState(altered_grid, valid_player_loc, [platform], self.goal_location))
+        return possible
+
     def print_state(self):
         for rn, row in enumerate(self.game_grid):
             for cn, col in enumerate(row):
@@ -89,15 +127,19 @@ class GameState:
             next_grid[y_coord+1][x_coord] = "▦"
 
         # if we're falling, but a platform is moving up under us, we're still falling
+        fall_onto = False
         if curr_on in accessible and next_grid[y_coord+1][x_coord] == "▦":
+            legal.append(("stay", (y_coord, x_coord)))
             next_grid[y_coord+1][x_coord] = "·"
+            fall_onto = True
 
         # if we're falling, only valid options are straight down, down right, down left
         fall_down = ("fall_down", (y_coord+1, x_coord))
         fall_right = ("fall_right", (y_coord+1, x_coord+1))
         fall_left = ("fall_left", (y_coord+1, x_coord-1))
         if self.validate_coord(fall_down[1]) and next_grid[fall_down[1][0]][fall_down[1][1]] in accessible:
-            legal.append(fall_down)
+            if not fall_onto:
+                legal.append(fall_down)
             if self.validate_coord(fall_right[1]) and next_grid[fall_right[1][0]][fall_right[1][1]] in accessible:
                 legal.append(fall_right)
             if self.validate_coord(fall_left[1]) and next_grid[fall_left[1][0]][fall_left[1][1]] in accessible:
